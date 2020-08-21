@@ -64,4 +64,22 @@ Find-Module *NET*
 
 Get-Command -Module POWERSHELLGET *PSREPOSITORY
 
+#About computers
+Get-CimInstance -ClassName Win32_Processor | Select-Object -ExcludeProperty "CIM*"
+Get-CimInstance -ClassName Win32_ComputerSystem
+Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3"
+Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" | measure-object -Property freespace,size -sum | select-object -Property property,sum
+Get-CimInstance -ClassName Win32_LogonSession
+
+get-cimInstance -classname win32_logonsession | get-member
+
+(Get-WmiObject -Class Win32_OperatingSystem -ComputerName .).Win32Shutdown(1)
+Get-CimInstance -ClassName Win32_BIOS -ComputerName+
+Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName . | Select-Object -Property SystemType+
+Get-CimInstance -ClassName Win32_QuickFixEngineering -ComputerName .+
+Get-CimInstance -ClassName Win32_OperatingSystem
+enable-NetAdapter -Name "wi-fi"
+rundll32.exe user32.dll,LockWorkStation
+shutdown.exe -l
+
 
