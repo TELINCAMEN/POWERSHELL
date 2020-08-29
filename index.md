@@ -1,37 +1,46 @@
-## Welcome to GitHub Pages
-
-You can use the [editor on GitHub](https://github.com/TELINCAMEN/POWERSHELL/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
-
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## POWERSHELL
 
 ```markdown
 Syntax highlighted code block
 
-# Header 1
-## Header 2
-### Header 3
+# OBTENER OBJETOS DE EQUIPOS REMOTOS MEDIANTE METODOS MICROSOFT.NET
+## Los siguientes metodos "no usan infraestructura Remota"
+### Objects Its a noun, that has properties and methods
 
 - Bulleted
-- List
+- LisT
 
-1. Numbered
-2. List
-
+1. GET-SERVICE
+2. GET-PROCESS
+3. GET-WMI-OBJECT
+4. GET-EVENTLOG
+5. GET-WINEVENT
 **Bold** and _Italic_ and `Code` text
 
 [Link](url) and ![Image](src)
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
 ### Jekyll Themes
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/TELINCAMEN/POWERSHELL/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+#To add the IP addresses of particular computers to the list of trusted hosts,
+#use the following command format:
+
+set-item wsman:\localhost\Client\TrustedHosts -value <IP Address>
+
+#For example:
+set-item wsman:\localhost\Client\TrustedHosts -value 172.16.0.0
+
+# La comunicación remota de Windows PowerShell usa el puerto 80 para el transporte HTTP de forma predeterminada. el
+# puerto predeterminado se utiliza siempre que el usuario no especifique el ConnectionURI
+# o parámetros de puerto en un comando remoto.
+
+#For example, the following command changes the default port to 8080.
+
+set-item wsman:\localhost\listener\listener*\port -value 8080
+
 
 ### Support or Contact
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+http://luiszarate.com.mx/contact.html
+
+
