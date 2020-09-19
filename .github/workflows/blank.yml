@@ -41,27 +41,9 @@ Get-Verb
 Get-Command SET-* | MEASURE
 Get-Command New-*
 Get-Command GET-*
-Get-Command out-*
-#Piping is very often to export data
-Get-Service | Export-Csv -Path 'c:\PEDRO\Users\Green1\Desktop\Powershell\'
-Get-WinEvent -FilterHashtable @{
-   LogName='Application'
-   ProviderName ='defrag*'
-}
-
-[System.Diagnostics.Eventing.Reader.StandardEventKeywords] | Get-Member -Static -MemberType Property
-
-Get-ChildItem -Path C:\WINDOWS\System32\w*32*.dll -Exclude *[9516]*
-
-Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=$true -ComputerName . | Format-Table -Property IPAddress
-
-'192.168.1.69','localhost','research.microsoft.com' | ForEach-Object -Process {Get-WmiObject -Class Win32_PingStatus -Filter ("Address='" + $_ + "'") -ComputerName .} | Select-Object -Property Address,ResponseTime,StatusCode
-
-1..254| ForEach-Object -Process {Get-WmiObject -Class Win32_PingStatus -Filter ("Address='192.168.1." + $_ + "'") -ComputerName .} | Select-Object -Property Address,ResponseTime,StatusCode
-
+Get-Command out-
 FIND-MODULE | MEASURE
 Find-Module *NET*
-
 Get-Command -Module POWERSHELLGET *PSREPOSITORY
 
 #About computers
@@ -81,5 +63,161 @@ Get-CimInstance -ClassName Win32_OperatingSystem
 enable-NetAdapter -Name "wi-fi"
 rundll32.exe user32.dll,LockWorkStation
 shutdown.exe -l
+
+===============================WINRM===========================================================================
+
+#region ComputerName
+
+# Per PowerShell documentation you can find a list of cmdlets that support ComputerName with the following:
+Get-Command | Where-Object { $_.parameters.keys -contains "ComputerName" -and $_.parameters.keys -notcontains "Session"}
+
+# this will prompt you to enter your access credentials. the creds will be securely stored in the variable
+$creds = Get-Credential
+
+# restart a single computer
+Restart-Computer -ComputerName RemoteDevice -Credential $creds
+
+# restart several computers
+Restart-Computer -ComputerName RemoteDevice1, RemoteDevice2, RemoteDevice3 -Credential $creds
+
+# restart an entire list of computers
+$devices = Get-Content -Path C:\listOfServers.txt
+Restart-Computer -ComputerName $devices -Credential $Creds -Force
+
+#endregion
+
+#region WinRM
+
+#verify that WinRM is setup and configured locally
+Test-WSMan
+
+# basic WinRM configuration with default settings
+winrm quickconfig
+
+<#Un servicio de administración que implementa el protocolo WS-Management para enviar y recibir mensajes.
+ WinRM es un servicio de escucha. Un agente de escucha se define mediante un transporte (HTTP o HTTPS) 
+ y una dirección IPv4 o IPv6. Puede crear más de una instancia de escucha de WinRM en un único equipo 
+ dándoles una dirección TCP/IP o un número de puerto diferentes.
+
+ =====================================================================================================
+La API de scripting en WinRM y la API COM adjunta para C++ están diseñadas para reflejar estrechamente las operaciones del protocolo WS-Management.
+La API de scripting de WinRM en Administración remota de Windows admite todas las operaciones del protocolo WS-Management excepto una
+No permite suscripciones a eventos. Para suscribirse a eventos desde el registro de eventos del sistema de BMC, debe utilizar las herramientas
+de línea de comandos Wecutil o Wevtutil. Para obtener más información, consulte Eventos.
+Winrm.vbs, una herramienta de línea de comandos, que se escribe en Visual Basic Scripting Edition (VBScript),
+llama a la API de scripting de WinRM. Winrm.vbs proporciona ejemplos de cómo utilizar la API de scripting de WinRM.
+
+======================================================================================================================================
+Uso de WSman en comparación con el uso de scripts WMI
+
+WMI se conecta a equipos remotos a través de DCOM, que requiere la configuración descrita en Conexión a WMI en un equipo remoto.
+WinRM no utiliza DCOM para conectarse a un equipo remoto. En su lugar, el protocolo WS-Management envía mensajes SOAP
+y el servicio utiliza un único puerto para HTTP y un puerto para el transporte HTTPS.
+
+A diferencia de la herramienta de línea de comandos winrm, los scripts deben proporcionar el XML necesario para pasar a los mensajes
+del protocolo WS-Management. También deben proporcionar URI.recursos y Administración remota de Windows y WMI.
+
+La API de scripting de WMI funciona con objetos, como instancias de Win32_LogicalDisk, que representan recursos en un equipo.
+Esta clase WMI se define en archivos de formato de objeto administrado (MOF), que se almacenan en formato binario en el repositorio WMI.
+En WMI, una operación Get para un único recurso o una consulta para varias instancias devuelve objetos WMI.
+
+Un script WinRM no devuelve objetos, sino secuencias de texto XML
+
+#>
+
+# example of WinRM configuration with more specific settings
+winrm quickconfig -transport:https
+
+# check winrm settings
+winrm get winrm/config/client
+winrm get winrm/config/service
+
+PS C:\> winrm enumerate winrm/config/listener
+Listener
+    Address = *
+    Transport = HTTP
+    Port = 5985
+    Hostname
+    Enabled = true
+    URLPrefix = wsman
+    CertificateThumbprint
+    ListeningOn = 10.0.3.253, 127.0.0.1, 192.168.1.253, ::1,
+
+#verify that WinRM is setup and responding on a remote device
+#you must specify the authentication type when testing a remote device.
+#if you are unsure about the authentication, set it to Negotiate
+$credential = Get-Credential
+Test-WSMan RemoteDeviceName -Authentication Negotiate -Credential $credential
+
+#verify local device is listening on WinRM port
+Get-NetTCPConnection -LocalPort 5985
+
+#verify a remote device is listening on WinRM port
+Test-NetConnection -Computername 192.168.34.13 -Port 5985
+
+#establish an interactive remote session
+$credential = Get-Credential
+Enter-PSSession -ComputerName RemoteDeviceName -Credential $credential
+
+#basic session opened to remote device
+$session = New-PSSession -ComputerName RemoteDeviceName -Credential domain\user
+
+#session opened to device over SSL
+$credential = Get-Credential
+$sessionHTTPS = New-PSSession -ComputerName RemoteDeviceName -Credential $credential -UseSSL
+
+#establish sessions to multiple devices
+$credential = Get-Credential
+$multiSession = New-PSSession -ComputerName RemoteDeviceName1,RemoteDeviceName2, RemoteDeviceName3 -Credential $credential
+
+#establish session to an entire list of devices
+$devices = Get-Content -Path C:\listOfServers.txt
+$credential = Get-Credential
+$multiSession = New-PSSession -ComputerName $devices -Credential $credential
+
+#session opened with advanced session options configured
+$sessionOptions = New-PSSessionOption -SkipCNCheck -SkipCACheck -SkipRevocationCheck
+$advancedSession = New-PSSession -ComputerName 10.0.3.27 -Credential user -UseSSL -SessionOption $so
+
+#endRegion
+
+#region Invoke-Command examples
+
+#get the number of CPUs for each remote device
+Invoke-Command -Session $sessions -ScriptBlock {(Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors}
+
+#get the amount of RAM for each remote device
+Invoke-Command -Session $sessions -ScriptBlock {Get-CimInstance Win32_OperatingSystem | Measure-Object -Property TotalVisibleMemorySize -Sum | ForEach-Object {[Math]::Round($_.sum/1024/1024)}}
+
+#get the amount of free space on the C: drive for each remote device
+Invoke-Command -Session $sessions -ScriptBlock {
+    $driveData = Get-PSDrive C | Select-Object Used,Free
+    $total = $driveData.Used + $driveData.Free
+    $calc = [Math]::Round($driveData.Free / $total,2)
+    $perFree = $calc * 100
+    return $perFree
+}
+
+#get the number of CPUs for each remote device
+Invoke-Command -Session $sessions -ScriptBlock {(Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors}
+
+#get the amount of RAM for each remote device
+Invoke-Command -Session $sessions -ScriptBlock {Get-CimInstance Win32_OperatingSystem | Measure-Object -Property TotalVisibleMemorySize -Sum | ForEach-Object {[Math]::Round($_.sum/1024/1024)}}
+
+#get the amount of free space on the C: drive for each remote device
+Invoke-Command -Session $sessions -ScriptBlock {
+    $driveData = Get-PSDrive C | Select-Object Used,Free
+    $total = $driveData.Used + $driveData.Free
+    $calc = [Math]::Round($driveData.Free / $total,2)
+    $perFree = $calc * 100
+    return $perFree
+}
+
+#stop the BITS service on all remote devices
+Invoke-Command -Session $sessions -ScriptBlock {Stop-Service BITS -Force}
+
+#endregion
+
+
 
 
